@@ -1,0 +1,9 @@
+[Unit]
+Description=Regular refresh the Bitcoin Core server's private Onion key to improve anonymity.
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

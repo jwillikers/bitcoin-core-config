@@ -1,0 +1,24 @@
+{
+    "cSpell.words": [
+        "autodefrag",
+        "autoupdate",
+        "bitcoind",
+        "btrfs",
+        "electrs",
+        "kylemanna",
+        "noatime",
+        "nologin",
+        "osminogin",
+        "subgid",
+        "subgids",
+        "subids",
+        "subuid",
+        "subuids",
+        "subvol",
+        "subvolume",
+        "torrc",
+        "usermod",
+        "userns",
+        "zstd"
+    ]
+}
