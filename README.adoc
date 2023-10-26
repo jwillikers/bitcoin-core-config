@@ -177,7 +177,7 @@ git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
 
 [,sh]
 ----
-cd bitcoin-core-config
+cd ~/Projects/bitcoin-core-config
 ----
 
 . First, create the Bitcoin pod which will run Bitcoin Core server container, the Tor container, and the electrs container.
@@ -205,11 +205,6 @@ podman run \
 
 [,sh]
 ----
-mkdir -p ~/container-volumes/bitcoin-core-server-data
-----
-
-[,sh]
-----
 podman run \
   --detach \
   --label "io.containers.autoupdate=registry" \
@@ -219,7 +214,7 @@ podman run \
   --volume ~/container-volumes/bitcoin-core-server-data:/bitcoin/.bitcoin:z \
   --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf:/bitcoin/.bitcoin/bitcoin.conf:ro,Z \
   --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf.d:/bitcoin/.bitcoin/bitcoin.conf.d:ro,Z \
-  docker.io/kylemanna/bitcoind:latest
+  docker.io/lncm/bitcoind:v25.1
 ----
 
 [,sh]
