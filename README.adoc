@@ -2,10 +2,9 @@
 :experimental:
 
 // todo Add license.
-// todo Document Caddy configuration for exposing electrs over port 500002
 // todo Organize documentation.
 // todo Make repository public.
-// todo 
+// todo Investigate further ways to lock down networking.
 
 == Getting Started
 
