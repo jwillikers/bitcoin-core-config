@@ -186,6 +186,9 @@ git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
 cd ~/Projects/bitcoin-core-config
 ----
 
+mkdir -p ~/container-volumes/bitcoin-core-tor-run/
+chmod 0700 ~/container-volumes/bitcoin-core-tor-run/
+
 . First, create the Bitcoin pod which will run Bitcoin Core server container, the Tor container, and the electrs container.
 +
 [,sh]
@@ -205,6 +208,7 @@ podman run \
   --name bitcoin-core-tor \
   --pod bitcoin-core \
   --rm \
+  --user (id -u):(id -g) \
   --volume ~/Projects/bitcoin-core-config/tor:/etc/tor:ro,Z \
   docker.io/osminogin/tor-simple:latest
 ----
