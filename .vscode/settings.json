@@ -5,6 +5,7 @@
         "bitcoind",
         "btrfs",
         "electrs",
+        "getent",
         "kylemanna",
         "lncm",
         "noatime",

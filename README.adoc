@@ -8,6 +8,11 @@
 sudo btrfs subvolume create /home/core
 ----
 
+[,sh]
+----
+echo (getent group systemd-journal) | sudo tee -a /etc/group
+----
+
 Create a primary user account named `core` for running containers with Podman.
 Place this user's home directory in a separate Btrfs subvolume, disable login, and ensure that the user has subuids.
 +
@@ -18,6 +23,7 @@ sudo useradd \
   --add-subids-for-system \
   --comment "Primary account for running containers" \
   --create-home \
+  --groups systemd-journal \
   --shell /usr/sbin/nologin \
   --system \
   --user-group \
@@ -210,10 +216,12 @@ podman run \
   --label "io.containers.autoupdate=registry" \
   --name bitcoin-core-server \
   --pod bitcoin-core \
+  --requires bitcoin-core-tor \
   --rm \
-  --volume ~/container-volumes/bitcoin-core-server-data:/bitcoin/.bitcoin:z \
-  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf:/bitcoin/.bitcoin/bitcoin.conf:ro,Z \
-  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf.d:/bitcoin/.bitcoin/bitcoin.conf.d:ro,Z \
+  --user (id -u):(id -g) \
+  --volume ~/container-volumes/bitcoin-core-server-data:/.bitcoin:z \
+  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf:/.bitcoin/bitcoin.conf:ro,Z \
+  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf.d:/.bitcoin/bitcoin.conf.d:ro,Z \
   docker.io/lncm/bitcoind:v25.1
 ----
 
@@ -224,7 +232,7 @@ git -C ~/Projects/ clone https://github.com/romanz/electrs
 
 [,sh]
 ----
-cd electrs
+cd ~/Projects/electrs
 ----
 
 [,sh]
@@ -237,15 +245,20 @@ git switch -c v0.10.0 v0.10.0
 podman build -t electrs-app .
 ----
 
+// todo Try using getumbrel/electrs instead
+
 [,sh]
 ----
 podman run \
     --detach \
     --label "io.containers.autoupdate=registry" \
-    --name bitcoin-core-electrs \
+    --name electrs \
     --pod bitcoin-core \
+    --requires bitcoin-core-server \
     --rm \
-    --volume ~/container-volumes/bitcoin-core-server-data:/home/user/.bitcoin:ro,z \
-    --volume ~/container-volumes/electrs-data:/home/user/db:Z \
-    electrs-app
+    --user (id -u):(id -g) \
+    --volume ~/container-volumes/bitcoin-core-server-data:/data/.bitcoin:ro,z \
+    --volume ~/container-volumes/electrs-data:/data/db:Z \
+    --volume ~/Projects/bitcoin-core-config/electrs/config.toml:/etc/electrs/config.toml:ro,Z \
+    docker.io/getumbrel/electrs:v0.9.14
 ----
