@@ -1,11 +1,56 @@
 = Bitcoin Core Config
 :experimental:
 
+// todo Add license.
+// todo Document Caddy configuration for exposing electrs over port 500002
+// todo Organize documentation.
+// todo Make repository public.
+// todo 
+
 == Getting Started
 
 [,sh]
 ----
 sudo btrfs subvolume create /home/core
+----
+
+. If desired, mount a separate disk to `/home/core`, as Bitcoin Core is going to be using a lot of disk space
+I place the entire home directory on a separate disk, but you could just use mount the `/home/core/container-volumes` subdirectory if you wanted to.
++
+.. Add an entry to mount the volume to `~/container-volumes`.
++
+./etc/fstab
+[,fstab]
+----
+UUID=f43665b0-2150-4165-97c3-71159544422c /var/home/core btrfs subvol=core,noatime,autodefrag,commit=120,compress=zstd:1,x-systemd.device-timeout=0 0 0
+----
+
+.. Double check there are no errors in `/etc/fstab`.
++
+[,sh]
+----
+sudo findmnt --verify --verbose
+----
+
+.. Reload systemd.
++
+[,sh]
+----
+sudo systemctl daemon-reload
+----
+
+.. Mount the filesystem as defined in fstab.
++
+[,sh]
+----
+sudo mount -a
+----
+
+.. Set the correct ownership for the volume.
++
+[,sh]
+----
+sudo chown -R core:core /var/home/core/container-volumes
 ----
 
 [,sh]
@@ -135,45 +180,14 @@ systemctl --user daemon-reload
 
 [,sh]
 ----
-mkdir -p ~/Projects ~/container-volumes/bitcoin-core-server-data ~/container-volumes/electrs-data
+mkdir -p ~/Projects ~/container-volumes/bitcoin-core-server-data ~/container-volumes/electrs-data ~/container-volumes/bitcoin-core-tor-run/
 ----
 
-. If desired, mount a separate disk to `~/container-volumes`, as Bitcoin Core is going to be using a lot of disk space
-+
-.. Add an entry to mount the volume to `~/container-volumes`.
-+
-./etc/fstab
-[,fstab]
-----
-UUID=f43665b0-2150-4165-97c3-71159544422c /var/home/core/container-volumes btrfs subvol=bitcoin,noatime,autodefrag,commit=120,compress=zstd:1,x-systemd.device-timeout=0 0 0
-----
-
-.. Double check there are no errors in `/etc/fstab`.
+. The permissions of the `~/container-volumes/bitcoin-core-tor-run/`, where the Tor socket will be available, must be restricted or Tor will refuse to run.
 +
 [,sh]
 ----
-sudo findmnt --verify --verbose
-----
-
-.. Reload systemd.
-+
-[,sh]
-----
-sudo systemctl daemon-reload
-----
-
-.. Mount the filesystem as defined in fstab.
-+
-[,sh]
-----
-sudo mount -a
-----
-
-.. Set the correct ownership for the volume.
-+
-[,sh]
-----
-sudo chown -R core:core /var/home/core/container-volumes
+chmod 0700 ~/container-volumes/bitcoin-core-tor-run/
 ----
 
 [,sh]
@@ -185,9 +199,6 @@ git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
 ----
 cd ~/Projects/bitcoin-core-config
 ----
-
-mkdir -p ~/container-volumes/bitcoin-core-tor-run/
-chmod 0700 ~/container-volumes/bitcoin-core-tor-run/
 
 . First, create the Bitcoin pod which will run Bitcoin Core server container, the Tor container, and the electrs container.
 +
@@ -210,6 +221,8 @@ podman run \
   --rm \
   --user (id -u):(id -g) \
   --volume ~/Projects/bitcoin-core-config/tor:/etc/tor:ro,Z \
+  --volume ~/container-volumes/bitcoin-core-tor-data:/var/lib/tor:Z \
+  --volume ~/container-volumes/bitcoin-core-tor-run:/run/tor:z \
   docker.io/osminogin/tor-simple:latest
 ----
 
@@ -226,30 +239,9 @@ podman run \
   --volume ~/container-volumes/bitcoin-core-server-data:/.bitcoin:z \
   --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf:/.bitcoin/bitcoin.conf:ro,Z \
   --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf.d:/.bitcoin/bitcoin.conf.d:ro,Z \
+  --volume ~/container-volumes/bitcoin-core-tor-run:/run/tor:z \
   docker.io/lncm/bitcoind:v25.1
 ----
-
-[,sh]
-----
-git -C ~/Projects/ clone https://github.com/romanz/electrs
-----
-
-[,sh]
-----
-cd ~/Projects/electrs
-----
-
-[,sh]
-----
-git switch -c v0.10.0 v0.10.0
-----
-
-[,sh]
-----
-podman build -t electrs-app .
-----
-
-// todo Try using getumbrel/electrs instead
 
 [,sh]
 ----
@@ -265,4 +257,20 @@ podman run \
     --volume ~/container-volumes/electrs-data:/data/db:Z \
     --volume ~/Projects/bitcoin-core-config/electrs/config.toml:/etc/electrs/config.toml:ro,Z \
     docker.io/getumbrel/electrs:v0.9.14
+----
+
+[,sh]
+----
+mkdir -p ~/.config/systemd/user/
+----
+
+[,sh]
+----
+cp ~/Projects/bitcoin-core-config/systemd/user/* ~/.config/systemd/user/
+----
+
+[,sh]
+----
+systemctl --user enable --now remove-bitcoin-onion-private-key.timer
+Created symlink /var/home/core/.config/systemd/user/timers.target.wants/remove-bitcoin-onion-private-key.timer → /var/home/core/.config/systemd/user/remove-bitcoin-onion-private-key.timer.
 ----

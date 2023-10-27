@@ -11,6 +11,7 @@
         "lncm",
         "noatime",
         "nologin",
+        "oneshot",
         "osminogin",
         "subgid",
         "subgids",
