@@ -257,19 +257,3 @@ podman run \
     --volume ~/Projects/bitcoin-core-config/electrs/config.toml:/etc/electrs/config.toml:ro,Z \
     docker.io/getumbrel/electrs:v0.9.14
 ----
-
-[,sh]
-----
-mkdir -p ~/.config/systemd/user/
-----
-
-[,sh]
-----
-cp ~/Projects/bitcoin-core-config/systemd/user/* ~/.config/systemd/user/
-----
-
-[,sh]
-----
-systemctl --user enable --now remove-bitcoin-onion-private-key.timer
-Created symlink /var/home/core/.config/systemd/user/timers.target.wants/remove-bitcoin-onion-private-key.timer → /var/home/core/.config/systemd/user/remove-bitcoin-onion-private-key.timer.
-----
