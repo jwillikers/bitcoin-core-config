@@ -1,3 +1,5 @@
 cookie_file = "/data/.bitcoin/.cookie"
 electrum_rpc_addr = "0.0.0.0:50001"
-log_filters = "DEBUG"
+
+# Use DEBUG instead of INFO to enable debug logging output.
+log_filters = "INFO"
