@@ -1,192 +1,36 @@
 = Bitcoin Core Config
+Jordan Williams <jordan@jwillikers.com>
 :experimental:
+:icons: font
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+:Bitcoin-Core: https://bitcoincore.org/[Bitcoin Core]
+:electrs: https://github.com/romanz/electrs[electrs]
+:Electrum: https://electrum.org/[Electrum]
+:Tor: https://www.torproject.org/[Tor]
 
-// todo Add license.
-// todo Organize documentation.
-// todo Make repository public.
-// todo Investigate further ways to lock down networking.
+The configuration for running a Bitcoin node, including the {Bitcoin-Core} server, the {Tor} service, and the {electrs} implementation of the {Electrum} wallet.
 
-== Getting Started
+These are configuration files for my Bitcoin Core pod.
+See the https://github.com/jwillikers/home-lab-helm[home-lab-helm] repository for the pod's configuration.
 
-[,sh]
-----
-sudo btrfs subvolume create /home/core
-----
+== Usage
 
-. If desired, mount a separate disk to `/home/core`, as Bitcoin Core is going to be using a lot of disk space
-I place the entire home directory on a separate disk, but you could just use mount the `/home/core/container-volumes` subdirectory if you wanted to.
-+
-.. Add an entry to mount the volume to `~/container-volumes`.
-+
-./etc/fstab
-[,fstab]
-----
-UUID=f43665b0-2150-4165-97c3-71159544422c /var/home/core btrfs subvol=core,noatime,autodefrag,commit=120,compress=zstd:1,x-systemd.device-timeout=0 0 0
-----
+The configuration files are organized by service.
+The files are meant to be mounted inside their respective containers at the necessary location.
+The home-lab-helm Kubernetes configuration expects this repository to be in a specific location.
+Follow these instructions to put the files in the expected location.
 
-.. Double check there are no errors in `/etc/fstab`.
-+
-[,sh]
-----
-sudo findmnt --verify --verbose
-----
-
-.. Reload systemd.
+. Create the `~/Projects` directory.
 +
 [,sh]
 ----
-sudo systemctl daemon-reload
-----
-
-.. Mount the filesystem as defined in fstab.
-+
-[,sh]
-----
-sudo mount -a
-----
-
-.. Set the correct ownership for the volume.
-+
-[,sh]
-----
-sudo chown -R core:core /var/home/core/container-volumes
-----
-
-[,sh]
-----
-echo (getent group systemd-journal) | sudo tee -a /etc/group
-----
-
-Create a primary user account named `core` for running containers with Podman.
-Place this user's home directory in a separate Btrfs subvolume, disable login, and ensure that the user has subuids.
-+
---
-[,sh]
-----
-sudo useradd \
-  --add-subids-for-system \
-  --comment "Primary account for running containers" \
-  --create-home \
-  --groups systemd-journal \
-  --shell /usr/sbin/nologin \
-  --system \
-  --user-group \
-  core
-----
-
-The `--root` flag can be used to create this user in the given chroot environment.
-
-[NOTE]
-----
-You may want to set the UID explicitly, especially when using shared NFS volumes which require the same UID across different machines.
-Use the `--uid` option to set this explicitly.
-----
---
-
-. If for some reason, you still need subuid and subgid ranges for the user, follow these steps.
-
-.. Calculate the first value for the next subuid allotment.
-+
---
-If `/etc/subuid` is empty, use 100,000 as the initial value.
-
-[,sh]
-----
-set new_subuid 100000
-----
-
-Otherwise, use the following function to calculate the next available subuid range.
-
-[,sh]
-----
-set new_subuid (math (tail -1 /etc/subuid | awk -F ":" '{print $2}') + 65536)
-----
---
-
-.. Calculate the first value for the next subuid allotment.
-+
---
-If `/etc/subgid` is empty, use 100,000 as the initial value.
-
-[,sh]
-----
-set new_subgid 100000
-----
-
-Otherwise, use the following function to calculate the next available subgid range.
-
-[,sh]
-----
-set new_subgid (math (tail -1 /etc/subgid | awk -F ":" '{print $2}') + 65536)
-----
---
- 
-.. Configure the `core` user with the necessary subuid and subgid ranges.
-+
-[,sh]
-----
-sudo usermod \
-  --add-subuids $new_subuid-(math $new_subuid + 65535) \
-  --add-subgids $new_subgid-(math $new_subgid + 65535) \
-  core
-----
-
-. Allow running the user's systemd services when the user is not logged in. 
-This also ensures that the user's runtime directory is available.
-+
-[,sh]
-----
-sudo loginctl enable-linger core
-----
-
-. Open a shell as the `core` user with the following command.
-+
-[,sh]
-----
-sudo -H -u core fish -c 'cd; fish'
-----
-
-. Configure the `XDG_RUNTIME_DIR` environment variable for the user in order for sockets to be found correctly.
-+
-[,sh]
-----
-set -Ux XDG_RUNTIME_DIR /run/user/(id -u)
-----
-
-. If you want to get automatic updates, make sure to enable Podman's automatic update timer for the user.
-+
-[,sh]
-----
-systemctl --user enable --now podman-auto-update.timer
-----
-
-[,sh]
-----
-mkdir -p ~/.config/containers/systemd
-----
-
-.~/.config/containers/systemd/podman.network
-[,systemd]
-----
-[Network]
-IPv6=yes
-----
-
-[,sh]
-----
-systemctl --user daemon-reload
-----
-
-[,sh]
-----
-mkdir -p ~/Projects ~/container-volumes/bitcoin-core-server-data ~/container-volumes/electrs-data ~/container-volumes/bitcoin-core-tor-run/
-----
-
-. The permissions of the `~/container-volumes/bitcoin-core-tor-run/`, where the Tor socket will be available, must be restricted or Tor will refuse to run.
-+
-[,sh]
-----
-chmod 0700 ~/container-volumes/bitcoin-core-tor-run/
+mkdir --parents ~/Projects
 ----
 
 [,sh]
@@ -194,66 +38,16 @@ chmod 0700 ~/container-volumes/bitcoin-core-tor-run/
 git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
 ----
 
-[,sh]
-----
-cd ~/Projects/bitcoin-core-config
-----
+== Code of Conduct
 
-. First, create the Bitcoin pod which will run Bitcoin Core server container, the Tor container, and the electrs container.
-+
-[,sh]
-----
-podman pod create \
-  --name bitcoin-core \
-  --network podman \
-  --replace \
-  --userns keep-id
-----
+The project's Code of Conduct is available in the link:CODE_OF_CONDUCT.adoc[] file.
 
-[,sh]
-----
-podman run \
-  --detach \
-  --label "io.containers.autoupdate=registry" \
-  --name bitcoin-core-tor \
-  --pod bitcoin-core \
-  --rm \
-  --user (id -u):(id -g) \
-  --volume ~/Projects/bitcoin-core-config/tor:/etc/tor:ro,Z \
-  --volume ~/container-volumes/bitcoin-core-tor-data:/var/lib/tor:Z \
-  --volume ~/container-volumes/bitcoin-core-tor-run:/run/tor:z \
-  docker.io/osminogin/tor-simple:latest
-----
+== License
 
-[,sh]
-----
-podman run \
-  --detach \
-  --label "io.containers.autoupdate=registry" \
-  --name bitcoin-core-server \
-  --pod bitcoin-core \
-  --requires bitcoin-core-tor \
-  --rm \
-  --user (id -u):(id -g) \
-  --volume ~/container-volumes/bitcoin-core-server-data:/.bitcoin:z \
-  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf:/.bitcoin/bitcoin.conf:ro,Z \
-  --volume ~/Projects/bitcoin-core-config/bitcoin/bitcoin.conf.d:/.bitcoin/bitcoin.conf.d:ro,Z \
-  --volume ~/container-volumes/bitcoin-core-tor-run:/run/tor:z \
-  docker.io/lncm/bitcoind:v25.1
-----
+This project is licensed under the https://creativecommons.org/licenses/by-sa/4.0/legalcode[Creative Commons Attribution-ShareAlike 4.0 International License].
 
-[,sh]
-----
-podman run \
-    --detach \
-    --label "io.containers.autoupdate=registry" \
-    --name electrs \
-    --pod bitcoin-core \
-    --requires bitcoin-core-server \
-    --rm \
-    --user (id -u):(id -g) \
-    --volume ~/container-volumes/bitcoin-core-server-data:/data/.bitcoin:ro,z \
-    --volume ~/container-volumes/electrs-data:/data/db:Z \
-    --volume ~/Projects/bitcoin-core-config/electrs/config.toml:/etc/electrs/config.toml:ro,Z \
-    docker.io/getumbrel/electrs:v0.9.14
-----
+© 2023 Jordan Williams
+
+== Authors
+
+mailto:{email}[{author}]

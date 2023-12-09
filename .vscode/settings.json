@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "adoc",
         "authcookie",
         "autodefrag",
         "autoupdate",
@@ -7,6 +8,7 @@
         "btrfs",
         "electrs",
         "getent",
+        "ifdef",
         "kylemanna",
         "lncm",
         "noatime",
