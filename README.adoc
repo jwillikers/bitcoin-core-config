@@ -33,6 +33,8 @@ Follow these instructions to put the files in the expected location.
 mkdir --parents ~/Projects
 ----
 
+. Clone the repository under the `~/Projects` directory.
++
 [,sh]
 ----
 git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
