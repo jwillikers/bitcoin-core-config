@@ -17,7 +17,7 @@ endif::[]
 The configuration for running a Bitcoin node, including the {Bitcoin-Core} server, the {Tor} service, and the {electrs} implementation of the {Electrum} wallet.
 
 These are configuration files for my Bitcoin Core pod.
-See the https://github.com/jwillikers/home-lab-helm[home-lab-helm] repository for the pod's configuration.
+See the https://codeberg.org/jwillikers/home-lab-helm[home-lab-helm] repository for the pod's configuration.
 
 == Usage
 
@@ -37,7 +37,7 @@ mkdir --parents ~/Projects
 +
 [,sh]
 ----
-git -C ~/Projects/ clone https://github.com/jwillikers/bitcoin-core-config
+git -C ~/Projects/ clone https://codeberg.org/jwillikers/bitcoin-core-config
 ----
 
 == Code of Conduct
